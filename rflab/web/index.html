@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>RF Signal Lab</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="brand">RF SIGNAL LAB<span>interactive modulation &amp; impairment laboratory</span></div>
+    <div class="status" id="status">loading…</div>
+    <div class="hbtns">
+      <button class="btn" id="themeBtn">Light</button>
+      <button class="btn" id="chalBtn">Challenges</button>
+      <button class="btn" id="resetBtn">Reset</button>
+    </div>
+  </header>
+
+  <main>
+    <!-- ================= EXPERIMENT ================= -->
+    <aside class="rail left">
+      <div class="grp"><h3>Modulation</h3><div class="body">
+        <label class="f"><span>Scheme</span><select id="mod"></select></label>
+        <div id="modp"></div>
+      </div></div>
+
+      <div class="grp"><h3>Signal parameters</h3><div class="body">
+        <label class="f"><span>Sample rate <b id="lb-fs">1</b> MHz</span>
+          <input type="range" id="fs" min="0.25" max="10" step="0.25" value="1"></label>
+        <label class="f"><span>Samples per symbol <b id="lb-sps">8</b></span>
+          <input type="range" id="sps" min="2" max="32" step="1" value="8"></label>
+        <label class="f"><span>Frame length <b id="lb-nsamp">4096</b> samples</span>
+          <input type="range" id="nsamp" min="512" max="16384" step="512" value="4096"></label>
+        <label class="f"><span>RRC roll-off β <b id="lb-beta">0.35</b></span>
+          <input type="range" id="beta" min="0" max="1" step="0.05" value="0.35"></label>
+        <label class="f"><span>Random seed <b id="lb-seed">0</b></span>
+          <input type="range" id="seed" min="0" max="9999" step="1" value="0"></label>
+        <button class="btn" id="reseed">New random draw</button>
+        <p class="hint" style="margin-top:8px">Symbol rate = sample rate ÷ samples per symbol.
+          Frame length sets both how much statistical evidence you have and how much
+          time-accumulating impairments (CFO, clock drift) get to do damage.</p>
+      </div></div>
+
+      <div class="grp"><h3>Receiver processing</h3><div class="body">
+        <label class="f" style="display:flex;gap:7px;align-items:center">
+          <input type="checkbox" id="rxmf" checked style="width:auto"> <span style="display:block">Matched filter</span></label>
+        <label class="f" style="display:flex;gap:7px;align-items:center">
+          <input type="checkbox" id="rxtr" checked style="width:auto"> <span style="display:block">Symbol timing recovery</span></label>
+        <p class="hint">These are receiver choices, not channel effects. Turning timing
+          recovery off makes the receiver sample on the nominal grid, which is what exposes a
+          static timing offset instead of quietly absorbing it.</p>
+      </div></div>
+
+      <div class="grp"><h3>Impairment chain</h3><div class="body">
+        <p class="hint" style="margin-bottom:9px">Applied in the order a real signal meets them:
+          transmitter → channel → over the air → receiver LO → clock → thermal noise →
+          receiver analog → ADC.</p>
+        <div id="imps"></div>
+      </div></div>
+
+      <div class="grp" id="chainGrp"><h3>Clean → impaired</h3><div class="body">
+        <div id="chain"></div>
+        <p class="hint" style="margin-top:8px">Constellation after each stage of the chain, with
+          the error each stage added.</p>
+      </div></div>
+
+      <div class="grp"><h3>Display</h3><div class="body">
+        <label class="f"><span>Constellation view</span><select id="cmode">
+          <option value="symbols">Symbol instants (matched filter)</option>
+          <option value="raw">All samples</option>
+          <option value="trajectory">Trajectory</option></select></label>
+        <label class="f"><span>Layout</span><select id="layout">
+          <option value="auto">Auto</option><option value="single">One per row</option></select></label>
+        <label class="f"><span>Time window shown <b id="lb-twin">auto</b></span>
+          <input type="range" id="twin" min="0.02" max="1" step="0.02" value="1"></label>
+        <button class="btn" id="twinAuto" style="margin-bottom:9px">Auto window per view</button>
+        <label class="f" style="display:flex;gap:7px;align-items:center">
+          <input type="checkbox" id="tclr" checked style="width:auto"><span style="display:block">Colour points by time</span></label>
+        <label class="f" style="display:flex;gap:7px;align-items:center">
+          <input type="checkbox" id="sclean" checked style="width:auto"><span style="display:block">Overlay clean reference</span></label>
+        <label class="f" style="display:flex;gap:7px;align-items:center">
+          <input type="checkbox" id="sbnd" checked style="width:auto"><span style="display:block">Decision boundaries</span></label>
+        <label class="f" style="display:flex;gap:7px;align-items:center">
+          <input type="checkbox" id="pwrap" style="width:auto"><span style="display:block">Wrapped phase</span></label>
+        <label class="f"><span>Spectrogram window <b id="lb-stftw">auto</b> symbols</span>
+          <input type="range" id="stftw" min="0" max="32" step="1" value="0"></label>
+        <label class="f"><span>Spectrogram span <b id="lb-stfts">48</b> symbols</span>
+          <input type="range" id="stfts" min="8" max="512" step="8" value="48"></label>
+        <p class="hint">Short window: sharp in time, blurry in frequency. Long window: the
+          reverse. They cannot both be sharp — that is the uncertainty principle, not a
+          limitation of the plot.</p>
+      </div></div>
+    </aside>
+
+    <!-- ================= VISUAL EVIDENCE ================= -->
+    <section id="stage">
+      <div id="grid"></div>
+      <div class="busy">computing…</div>
+    </section>
+
+    <!-- ================= TUTOR ================= -->
+    <aside class="rail right"><div id="tutor"></div></aside>
+  </main>
+</div>
+
+<div class="modal" id="modal"><div class="in">
+  <div class="hd"><h4 id="modalT" style="flex:1;font-size:14px"></h4>
+    <button class="btn" id="modalX">Close</button></div>
+  <div class="bd tt" style="border:0;background:transparent"><div class="b" id="modalB"></div></div>
+</div></div>
+
+<div id="toast"></div>
+<script type="module" src="/static/app.js"></script>
+</body>
+</html>
