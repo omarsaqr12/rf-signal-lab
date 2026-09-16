@@ -1,0 +1,36 @@
+name: RF Signal Lab QA
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/qa.yml'
+      - 'qa/**'
+      - 'rflab/**'
+      - 'run.sh'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  numerical-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install numerical dependencies
+        run: python -m pip install numpy scipy
+      - name: Verify analytic physics checks
+        run: python qa/verify_physics.py
+      - name: Verify report comparisons and enabled narration
+        run: python qa/report.py
+      - name: Upload generated verification report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qa-verification
+          path: qa/VERIFICATION.md
+          if-no-files-found: warn
