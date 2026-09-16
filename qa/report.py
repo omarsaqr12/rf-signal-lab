@@ -1,8 +1,7 @@
 """Generate the QA report: expected behaviour, measured value, verdict.
 
-Each row states a physical prediction made independently of the code, then the
-number the lab actually measured from the samples.  A row passes only if the
-two agree -- "the script ran" is not evidence of anything.
+The numeric comparisons use independent reference calculations. Each tutor excerpt
+must describe an enabled impairment, not a silently disabled configuration.
 """
 import json, os, sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -15,7 +14,19 @@ R = []
 
 
 def case(name, cfg, expectation, checks, look_for):
+    # Case descriptions historically omitted enabled=True, even though the
+    # numerical checks above used it. The engine treats missing enabled as OFF.
+    # Normalize the actual narration run and refuse a report with an absent
+    # impairment instead of claiming an impaired signal was inspected.
+    cfg = dict(cfg)
+    cfg["impairments"] = {
+        key: {**params, "enabled": True}
+        for key, params in cfg.get("impairments", {}).items()
+    }
     res = run(cfg)
+    missing = set(cfg["impairments"]) - set(res["reports"])
+    if missing:
+        raise RuntimeError(f"{name}: requested impairments not applied: {sorted(missing)}")
     rows = []
     for label, predicted, got, tol, unit in checks:
         ok = (abs(got - predicted) <= tol) if predicted is not None else bool(got)
@@ -214,10 +225,11 @@ for mod in ("bpsk", "qpsk", "8psk", "16qam"):
 
 npass = sum(1 for c in R if c["pass"])
 out = ["# RF Signal Lab — verification report", "",
-       f"{npass} of {len(R)} experiments agree with theory.", "",
-       "Each row states a prediction derived from physics, then the value the lab measured from "
-       "the generated samples. Screenshots of every case were inspected as part of this pass; "
-       "the *look for* line records what the visual had to show for the case to count as passing.",
+       f"{npass} of {len(R)} numerical experiments agree with their configured comparisons.", "",
+       "Numeric checks and tutor excerpts are generated in separate runs. Each narrator run "
+       "explicitly enables its described impairments; the writer fails if an impairment is absent. "
+       "Look-for descriptions are inspection guidance, not proof of visual screenshot review. "
+       "Re-run the browser screenshot harness separately for visual evidence.",
        ""]
 for c in R:
     out.append(f"## {c['name']} — {'PASS' if c['pass'] else 'FAIL'}")
