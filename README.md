@@ -3,7 +3,7 @@
 **Interactive RF signal simulator and DSP learning tool**  
 Python · NumPy/SciPy · JavaScript · Canvas · signal processing
 
-Generate a modulated I/Q signal, introduce realistic *modeled* channel and receiver impairments, and see how its constellation, waveform, spectrum, and other representations change. Contextual explanations connect the measurements to modulation recognition and receiver design. This is a **local educational simulator**, not a live SDR receiver, 5G modem, or validated hardware-in-the-loop system.
+Generate a modulated I/Q signal, introduce *modeled* channel and receiver impairments, and see how its constellation, waveform, spectrum, and other representations change. Contextual explanations connect measurements to modulation recognition and receiver design. This is a **local educational simulator**, not a live SDR receiver, 5G modem, or validated hardware-in-the-loop system.
 
 ## Run it locally
 
@@ -22,7 +22,7 @@ Open **http://127.0.0.1:8765**. The server binds to localhost by default; the re
 
 1. Choose **QPSK** with no impairment. Inspect the constellation and time-domain I/Q trace.
 2. Enable **AWGN** and lower SNR from 20 dB to 0 dB. Watch the clusters spread and compare the measured decision margin.
-3. Disable AWGN and enable **carrier frequency offset**. Compare the raw constellation with phase versus time, then explore what ideal synchronization can remove.
+3. Disable AWGN and enable **carrier frequency offset**. Compare the raw constellation with phase versus time, then explore what ideal synchronization can remove. **Known visualization limitation:** the ideal constellation overlay's amplitude can shrink under CFO; see [issue #2](https://github.com/omarsaqr12/rf-signal-lab/issues/2). Do not interpret that marker shrinkage as received-power loss.
 4. Switch to **2-FSK** or **OFDM**. Notice why instantaneous frequency or the cyclic-prefix view can be more informative than a constellation.
 
 All examples run on generated signals; no dataset, radio, or GPU is needed.
@@ -55,9 +55,9 @@ Local JSON API → dependency-free JavaScript/Canvas interface
 - [`rflab/experiment.py`](rflab/experiment.py) — runs a configuration and packages results for the UI.
 - [`rflab/tutor/`](rflab/tutor/) — severity calculations, view selection, explanations, and challenges.
 - [`rflab/server.py`](rflab/server.py) and [`rflab/web/`](rflab/web/) — localhost API and interactive browser interface.
-- [`qa/`](qa/) — independent numerical checks, generated verification report, configuration sweep, and screenshot harness.
+- [`qa/`](qa/) — numerical checks, generated verification report, configuration sweep, and screenshot harness.
 
-The simulator retains a clean reference signal so it can compute diagnostics such as reference-based error vector magnitude. That reference is an *oracle available to the simulation*, not something a real receiver automatically knows.
+For technical design decisions and earlier failure modes, read the [engineering notes](docs/ENGINEERING_NOTES.md). The simulator retains a clean reference signal to compute diagnostics such as reference-based error vector magnitude. That reference is an *oracle available to the simulation*, not something a real receiver automatically knows.
 
 ## Verify the implementation
 
@@ -69,10 +69,10 @@ python qa/report.py          # numeric comparisons + tutor excerpts; regenerates
 python qa/sweep.py           # cross-modulation and parameter-extreme smoke checks
 ```
 
-The [GitHub Actions workflow](.github/workflows/qa.yml) runs the numerical checks on pull requests and uploads the regenerated report. The [September 16 CI run](https://github.com/omarsaqr12/rf-signal-lab/actions/runs/35083811502) recorded 48/48 analytic checks and 22/22 report comparisons passing. These counts cover specific scripted cases; they are not a blanket certification of every waveform, plot, or RF device. See [verification scope and known limitations](qa/REVIEW_NOTES.md).
+The [GitHub Actions workflow](.github/workflows/qa.yml) runs numerical and browser checks on pull requests. Its [September 16 run](https://github.com/omarsaqr12/rf-signal-lab/actions/runs/35085215340) recorded **48/48 analytic checks, 22/22 report comparisons, and a 411-configuration smoke sweep with no failures**. A separate Chromium job captured 24 named cases and reported no console errors. The workflow provides [generated verification evidence](qa/VERIFICATION.md) and [browser screenshots](https://github.com/omarsaqr12/rf-signal-lab/actions/runs/35085215340/artifacts/10441519944); capturing a screenshot does not prove every plotted quantity is correct. See [verification scope and known limitations](qa/REVIEW_NOTES.md), including [the CFO ideal-overlay issue](https://github.com/omarsaqr12/rf-signal-lab/issues/2).
 
-For a *separate* visual review, install Playwright and its Chromium browser, start the local server, then run `python qa/shoot.py OUTDIR`. The harness captures screenshots for inspection; it does not make a screenshot correct merely by saving it. Do not confuse numerical QA with manual browser review.
+For a separate visual review, install Playwright and its Chromium browser, start the local server, then run `python qa/shoot.py OUTDIR`. Inspect its screenshots and console-error summary rather than equating successful capture with visual correctness.
 
 ## Scope and limitations
 
-Channel and hardware effects here are mathematical models. Severity and synchronization diagnostics are pedagogical approximations tied to generated samples and, for some calculations, a clean reference. No over-the-air capture, device generalization, model accuracy on real RF, or end-to-end SDR latency is established by this repository. See the verification notes before citing the generated report.
+Channel and hardware effects here are mathematical models. Severity and synchronization diagnostics are pedagogical approximations tied to generated samples and, for some calculations, a clean reference. No over-the-air capture, device generalization, model accuracy on real RF, or end-to-end SDR latency is established by this repository. The CFO ideal-reference overlay remains an [open visual issue](https://github.com/omarsaqr12/rf-signal-lab/issues/2). Check the [verification notes](qa/REVIEW_NOTES.md) before citing a generated report.
