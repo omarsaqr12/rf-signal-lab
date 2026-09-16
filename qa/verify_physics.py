@@ -130,9 +130,13 @@ for lw in (100.0, 1000.0):
 print("\n=== Multipath: two-ray null spacing = 1/delay ===")
 d = 4e-6
 y, r = I.multipath(x, fs, [0, d], [0, -1.0])
+# Independent two-ray reference: power ratio a = 10^(-1/10),
+# mean delay = a*d/(1+a), and RMS spread = d*sqrt(a)/(1+a).
+# Never derive the expected value from the report under test.
+a = 10 ** (-1.0 / 10.0)
+expected_rms_ds = d * np.sqrt(a) / (1.0 + a)
 check(f"RMS delay spread (two-ray {d*1e6:.0f} us)",
-      d / 2 * 2 * np.sqrt(10 ** (-0.1) / (1 + 10 ** (-0.1)) ** 2) * 0 + r["rms_delay_spread_s"],
-      r["rms_delay_spread_s"], 1e-12, " s", "(self-consistency)")
+      expected_rms_ds, r["rms_delay_spread_s"], 1e-12, " s")
 h = np.zeros(2048, dtype=complex)
 h[0] = 1.0
 h[int(round(d * fs))] = 10 ** (-1.0 / 20)
